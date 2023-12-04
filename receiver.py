@@ -60,9 +60,6 @@ while True:
     mac_dst = frame[0:6]
     mac_src = frame[6:12]
     ethertype = ntohs(eth[2])
-    # print("Destination MAC:", format_mac(mac_dst))
-    # print("Source MAC:", format_mac(mac_src))
-    print("EtherType:", hex(ethertype))
 
 
     arp_raw_data, _ = s.recvfrom(65535)  # Recebe dados brutos
@@ -112,12 +109,6 @@ while True:
             len(frame)
         ])
 
-        # print("IP Version:", version)
-        # print("IP Header Length:", iph_length)
-        # print("TTL:", ttl)
-        # print("Source IP:", src_ip)
-        # print("Destination IP:", dst_ip)
-
         # Layer 4 - TCP (6) or UDP (17)
         if protocol == 6:  # TCP
             tcp_counter += 1
@@ -141,10 +132,12 @@ while True:
                 len(frame)
             ])
             
-            # print("TCP - Source Port:", src_port)
-            # print("TCP - Destination Port:", dst_port)
-            # print("TCP - Sequence Number:", sequence_number)
-            # print("TCP - Acknowledgment Number:", ack_number)
+        elif protocol == 1: # ICMP
+            icmp_counter +=1
+            icmp_bytes += len(frame)
+
+            icmp_header = frame[eth_length + iph_length:eth_length + iph_length + 8]  # Obtém o cabeçalho ICMP (8 bytes)
+            icmp_type, icmp_code, icmp_checksum = unpack('!BBH', icmp_header)
             
         elif protocol == 17:  # UDP
             udp_counter += 1
@@ -165,13 +158,8 @@ while True:
                 dst_ip,
                 len(frame)
             ])
-            # print("UDP - Source Port:", src_port)
-            # print("UDP - Destination Port:", dst_port)
-        elif protocol == 1:
-            icmp_counter +=1
-            icmp_bytes += len(frame)
 
-    elif ethertype == 0x86DD:
+    elif ethertype == 0x86DD: # IPv6
         ipv6_bytes += len(frame)
         ipv6_counter += 1
 
@@ -182,7 +170,7 @@ while True:
         total_bytes += len(frame)
         arp_header = frame[eth_length:eth_length + 28]
 
-    # Unpack ARP header
+        # Unpack ARP header
         arp_hdr = unpack('HHBBH6s4s6s4s', arp_header)
         arp_type = arp_hdr[4]
 
@@ -207,15 +195,7 @@ while True:
                 len(frame)
             ])
 
-
-        # print("ARP - Source MAC:", src_mac)
-        # print("ARP - Source IP:", src_ip)
-        # print("ARP - Destination MAC:", dst_mac)
-        # print("ARP - Destination IP:", dst_ip)
-
     print("-------------------------------------------------------------")
-
-    # Print and flush counters every 5 seconds
     
     print("\nARP Packets: {}, Bytes: {}".format(arp_counter, arp_bytes))
     print("IPv4 Packets: {}, Bytes: {}".format(ipv4_counter, ipv4_bytes))
